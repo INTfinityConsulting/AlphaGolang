@@ -60,6 +60,7 @@ The first two steps (recreate_pclntab and function_discovery_and_renaming) will 
        - Comments the arguments of all calls to `newobject`, `makechan`, etc.
        - Applies the correct C type to these objects and renames them
        - Obtains the human-readable name and adds it as a comment
+       - Parse struct members and recursively parse struct member's type
 
 ### Pending fixes and room for contributions:
  - fix_string_cast.py 
