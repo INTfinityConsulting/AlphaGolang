@@ -138,6 +138,9 @@ def get_struct_variable_name(addr):
 
 def parse_struct_variables(start_ea, num_variables):
 
+    undefine_range(start_ea, num_variables*3*0x8)
+    define_qword(start_ea, num_variables*3)
+
     # Parse each variable in struct
     for variable_idx in range(num_variables):
         # variable consists of the following pattern
@@ -149,12 +152,13 @@ def parse_struct_variables(start_ea, num_variables):
         # Get name and set cmt next to the pointer
         variable_name_ptr = get_qword(curr_ea)
         variable_name = get_struct_variable_name(variable_name_ptr)
-        
-        set_cmt(curr_ea, variable_name.decode(errors="replace"), False)
+
+        if variable_name is not None:
+            set_cmt(curr_ea, variable_name.decode(errors="replace"), False)
 
         # Ensure that the type is resolved if not resolve the type
-        if ida_bytes.is_unknown(ida_bytes.get_flags(get_qword(curr_ea+8))):
-            print_debug_msg("Parsing type at " + str(hex(curr_ea+8)))
+        if idc.get_type(get_qword(curr_ea+8)) != 'golang_type':
+            print_debug_msg("Parsing type of variable at " + str(hex(curr_ea+8)))
             parse_type(get_qword(curr_ea+8))
 
 def get_data_addr():
@@ -241,10 +245,11 @@ def parse_struct_with_name(addr):
 
     size_of_next_structure = get_qword(addr+0x58)
 
-    undefine_range(addr+0x40, 0x18 + size_of_next_structure)
-    define_qword(addr+0x40, 0x4 + int(size_of_next_structure/0x8))
+    undefine_range(addr+0x40, 0x20)
+    define_qword(addr+0x40, 0x4)
 
-    parse_struct_variables(addr+0x60, variable_size)
+    variable_start_addr = get_qword(addr+0x38)
+    parse_struct_variables(variable_start_addr, variable_size)
 
 
 
@@ -255,12 +260,13 @@ def parse_struct_without_name(addr):
     # Start of variable
     variable_size = get_qword(addr+0x40)
 
-    undefine_range(addr+0x40, 0x10 + variable_size*8*3)
+    undefine_range(addr+0x40, 0x10)
 
-    define_qword(addr+0x40, 2 + 3*variable_size)
+    define_qword(addr+0x40, 2)
 
     # Parse each variable of struct
-    parse_struct_variables(addr+0x50, variable_size)
+    variable_start_addr = get_qword(addr+0x38)
+    parse_struct_variables(variable_start_addr, variable_size)
     
 
 
@@ -343,6 +349,7 @@ addresses |= find_type_structures("runtime_assertI2I", "rax", search_len=30)
 addresses |= find_type_structures("runtime_assertE2I", "rax", search_len=30)
 addresses |= find_type_structures("runtime_assertE2I2", "rax", search_len=30)
 addresses |= find_type_structures("golang_org_x_crypto_ssh_Unmarshal", "rdi", search_len=30)
+addresses |= find_type_structures("runtime_typedmemclr", "rax", search_len=30)
 
 
 
